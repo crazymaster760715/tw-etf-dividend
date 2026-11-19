@@ -549,6 +549,21 @@ button,.chip,.cat,.lr,.card{-webkit-tap-highlight-color:transparent}
 <div class="tip" id="tip"></div>
 
 <script>
+/* 相容舊版瀏覽器 + 畫面上直接顯示錯誤 */
+if (!Object.fromEntries) Object.fromEntries = function(it){ var o = {}; for (var kv of it) o[kv[0]] = kv[1]; return o; };
+if (!Array.prototype.flatMap) Array.prototype.flatMap = function(f, t){ return this.map(f, t).reduce(function(a, b){ return a.concat(b); }, []); };
+(function(){
+  function show(msg){
+    var b = document.getElementById("errBanner");
+    if (!b) { b = document.createElement("div"); b.id = "errBanner"; b.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#fff1f1;color:#b91c1c;border:2px solid #dc2626;border-radius:12px;padding:12px 14px;font:13px/1.5 system-ui,sans-serif;word-break:break-all;box-shadow:0 6px 24px rgba(0,0,0,.25)"; (document.body || document.documentElement).appendChild(b); }
+    b.innerHTML = "⚠️ 頁面發生錯誤（請截圖給開發者）<br>" + msg + "<br><small>" + navigator.userAgent + "</small>";
+  }
+  window.addEventListener("error", function(e){ show((e.message || "error") + (e.lineno ? " @行" + e.lineno : "")); });
+  window.addEventListener("unhandledrejection", function(e){ show("Promise: " + (e.reason && e.reason.message || e.reason)); });
+  setTimeout(function(){ var t = document.getElementById("tx"); if (t && t.textContent.trim() == "—" && !document.getElementById("errBanner")) show("資料 8 秒內仍未載入（可能是網路擋住或載入太慢）"); }, 8000);
+})();
+</script>
+<script>
 /* ---------- 分類配色:多彩大圖卡 ---------- */
 const CAT = {
   "高股息":   {ic:"💵", g:["#ff8a00","#e52e71"]},
@@ -879,7 +894,7 @@ function taBox(e){
   const sumUp2 = lev ? "⚠️ 這是槓桿／反向型 ETF，會每天重新平衡、長期持有會有耗損，只適合短線操作，不適合存股或退休規劃。技術面：" + sumUp.replace(/：.*/, "") : sumUp;
   const [r1, n1] = rankIn({...e, _:0}, "ttmYield"), rs = S.filter(x => x.category == e.category && x.ta).sort((a,b) => b.ta.score - a.ta.score);
   const r2 = rs.findIndex(x => x.id == e.id) + 1, [r3, n3] = rankIn(e, "ret1y"), [r4, n4] = rankIn(e, "aum");
-  const dim = (nm, v, cc) => `<div class="dim"><span>${nm}</span><div class="tr"><span style="width:${v ?? 0}%;background:${cc}"></span></div><b class="num">${v ?? "—"}</b></div>`;
+  const dim = (nm, v, cc) => `<div class="dim"><span>${nm}</span><div class="tr"><span style="width:${v == null ? 0 : v}%;background:${cc}"></span></div><b class="num">${v == null ? "—" : v}</b></div>`;
   return `<div class="box"><h2>📊 技術分析白話評比 <span style="font-size:12px;color:var(--sub);font-weight:500">${e.date} 收盤資料</span></h2>
     <div class="tagrid">
       <div><div class="gauge">${gaugeSvg(t.score, c)}<div class="lv" style="color:${c}">${ic} ${lv}</div><small>綜合技術面分數（0～100）</small></div>
@@ -1038,7 +1053,7 @@ document.addEventListener("keydown", ev => ev.key == "Escape" && closeDetail());
 function lineChart(el, e, mode){
   const m = e.monthly, tm = Object.fromEntries(TX.monthly), W = 640, H = 260, P = {l:50, r:50, t:12, b:26};
   if (!m || m.length < 2) { el.innerHTML = `<div class="empty">資料不足</div>`; return; }
-  const a = m.map(x => x[1]), b = m.map(x => tm[x[0]] ?? null);
+  const a = m.map(x => x[1]), b = m.map(x => tm[x[0]] == null ? null : tm[x[0]]);
   const b0 = b.find(v => v != null), a0 = a[0];
   const sa = mode == "pct" ? a.map(v => (v/a0-1)*100) : a;
   const sb = mode == "pct" ? b.map(v => v==null?null:(v/b0-1)*100) : b;
@@ -1130,7 +1145,7 @@ $("#btnTh").onclick = () => { const cur = (() => { try{ return localStorage.getI
   toast({auto:"🌓 跟隨系統深淺色", dark:"🌙 已切換深色模式", light:"☀️ 已切換淺色模式"}[nx], 1600); };
 /* 數字滾動動畫 */
 function tweenMoney(el, to){
-  const from = el._v ?? to; el._v = to; if (from == to || matchMedia("(prefers-reduced-motion:reduce)").matches) { el.textContent = money(to); return; }
+  const from = el._v == null ? to : el._v; el._v = to; if (from == to || matchMedia("(prefers-reduced-motion:reduce)").matches) { el.textContent = money(to); return; }
   const t0 = performance.now(), D = 600; cancelAnimationFrame(el._r);
   const step = t => { const k = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - k, 3); el.textContent = money(from + (to - from) * e); if (k < 1) el._r = requestAnimationFrame(step); };
   el._r = requestAnimationFrame(step);
