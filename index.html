@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#1a2fd8">
 <title>坊颯 ETF 配息管理</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@500;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
 :root{
   --bg:#f3f5fa; --panel:#ffffff; --ink:#141a2e; --sub:#5b6478; --line:#e4e8f1;
@@ -575,11 +576,14 @@ let PF = load();   // 我的持股 [{id, lots}]
 function load(){ try{ return JSON.parse(localStorage.getItem("etf_pf")) || [{id:"00878",lots:10},{id:"0056",lots:10},{id:"00940",lots:20}] }catch(e){ return [] } }
 function save(){ try{ localStorage.setItem("etf_pf", JSON.stringify(PF)) }catch(e){} }
 
-fetch("data/summary.json?" + Date.now()).then(r => r.json()).then(d => {
+fetch("data/summary.json?" + Date.now()).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(d => {
   S = d.etfs; TX = d.taiex; STAMP = d.updated;
   $("#tx").textContent = fmt(TX.price, 2); $("#txd").textContent = TX.date;
   $("#nEtf").textContent = S.length + " 檔"; $("#upd").textContent = "更新 " + d.updated;
   buildCats(); buildChips(); render(); renderPF(); renderPlan();
+}).catch(err => {
+  console.error(err);
+  $("#cats").innerHTML = `<div style="padding:24px;text-align:center;color:#b91c1c;grid-column:1/-1">⚠️ 資料載入失敗（${err.message}）<br><button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;border-radius:12px;border:0;background:#1f3cff;color:#fff;font-size:15px">重新載入</button></div>`;
 });
 
 function buildCats(){
